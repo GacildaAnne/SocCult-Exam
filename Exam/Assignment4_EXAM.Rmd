@@ -613,6 +613,12 @@ First attempt. We try again.
 We can see that the distribution is multimodal (bimodal without the details), I will therefore try again with a mixture model.
 
 ```{r}
+Con1$Question.x <- as.factor(Con1$Question.x) 
+Con1$SI <- as.factor(Con1$SI)
+Con1$CorrectAnswer <- as.factor(Con1$CorrectAnswer)
+Con1$Diff <- as.factor(Con1$Diff)
+Con1$AgeDif1 <- as.integer(Con1$AgeDif1)
+
 mix <- mixture(gaussian, gaussian, order = "mu")
 formula_1 <- bf(sumcon.x ~ AgeDif1 + SI * CorrectAnswer * Diff + (1|Question.x) )
 
@@ -623,25 +629,11 @@ prior_1 <- c(
   prior(student_t(3, 0, 2.5), class = sigma1),
   prior(student_t(3, 0, 2.5), class = sigma2),
   prior(dirichlet(1), class = theta),
-  prior(normal(0, .3), class = b, coef = "AgeDif1", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer:Diff", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "Diff", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer:Diff", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI:Diff", dpar = mu1),
+  prior(normal(0, .3), class = b, dpar = mu1),
   prior(student_t(3, 1, 2.5), class = Intercept, dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "AgeDif1", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer:Diff", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "Diff", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer:Diff", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI:Diff", dpar = mu2),
-  prior(student_t(3, 3, 2.5), class = Intercept, dpar = mu2),
   prior(student_t(3, 0, 2.5), class = sd, dpar = mu1),
+  prior(normal(0, .3), class = b, dpar = mu2),
+  prior(student_t(3, 3, 2.5), class = Intercept, dpar = mu2),
   prior(student_t(3, 0, 2.5), class = sd, dpar = mu2)
 )
 
@@ -681,6 +673,7 @@ summary(Model_1)
 
 # Now try with a formula without Difficulty? (It was made by me anyway, maybe it has no influence, maybe the other things have influence without Diff)
 
+
 formula_2 <- bf(sumcon.x ~ AgeDif1 + SI * CorrectAnswer + (1|Question.x))
 
 mix <- mixture(gaussian, gaussian, order = "mu")
@@ -688,24 +681,18 @@ mix <- mixture(gaussian, gaussian, order = "mu")
 get_prior(formula_2, Con1, family = mix)
 
 #### TRIED (0, .1) BUT HAD MANY ISSUES, THEREFORE I TRIED A STRONGER PRIOR
+
 prior_2 <- c(
   prior(student_t(3, 0, 2.5), class = sigma1),
   prior(student_t(3, 0, 2.5), class = sigma2),
   prior(dirichlet(1), class = theta),
-  prior(normal(0, .3), class = b, coef = "AgeDif1", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "AgeDif1", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "CorrectAnswer", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI:CorrectAnswer", dpar = mu2),
-  prior(normal(0, .3), class = b, coef = "SI", dpar = mu1),
-  prior(normal(0, .3), class = b, coef = "SI", dpar = mu2),
+  prior(normal(0, .3), class = b, dpar = mu1),
   prior(student_t(3, 1, 2.5), class = Intercept, dpar = mu1),
-  prior(student_t(3, 3, 2.5), class = Intercept, dpar = mu2),
   prior(student_t(3, 0, 2.5), class = sd, dpar = mu1),
+  prior(normal(0, .3), class = b, dpar = mu2),
+  prior(student_t(3, 1, 2.5), class = Intercept, dpar = mu2),
   prior(student_t(3, 0, 2.5), class = sd, dpar = mu2)
 )
-
 
 # Test the prior on a model 
 model_2 <- brm(
@@ -768,6 +755,12 @@ Model_1 has the lowest WAIC.
 
 ```{r}
 
+pred <- posterior_predict(Model_1)
+
+plot(pred)
+
+mean(pred)
+sd(pred)
 
 ```
 
@@ -925,6 +918,8 @@ This is the first attempt with a prior.
 
 ```{r}
 # Try a mixture model - we can see that the actual data is bimodal, which is why the first prior did not fit well.
+
+class(Con$AgeDif)
 
 # Define the formula (keep it simple)
 formula1 <- bf(sumcon ~ AgeDif)
