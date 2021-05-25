@@ -1,0 +1,372 @@
+---
+title: "Help"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+
+
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(metafor)
+library(scales)
+library(lme4)
+library(tidyr)
+library(data.table)
+library(plyr)
+library(reshape)
+library(reshape2)
+
+df <- read.csv("full_dataset.csv", header = TRUE)
+Data <- read.csv("survey_data.csv", header = TRUE)
+
+```
+
+
+```{r}
+
+# Age distribution
+count(Data$Age)
+mean(Data$Age)
+sd(Data$Age)
+
+# Plot for describing participants
+# Histogram of age and gender distribution
+class(Data$Gender)
+Data$Gender <- as.factor(Data$Gender)
+
+class(df$Gender)
+df$Gender <- as.factor(df$Gender)
+
+
+ggplot(Data, aes(Age, fill = Gender))+
+  geom_histogram(position = "dodge2")+
+  scale_x_continuous(breaks = c(20:30)) +
+  xlab("Participants age and gender distribution")
+
+# Ethnicity and language
+count(Data$Ethnicity)
+count(Data$Language)
+
+
+```
+
+
+
+
+```{r}
+
+Condition1 <- subset(df, Question <=5)
+Condition2 <- subset(df, Question >= 6)
+
+Condition1$Question <- as.factor(Condition1$Question)
+Condition1$ID <- as.factor(Condition1$ID)
+Condition1$SI1 <- as.factor(Condition1$SI1)
+Condition1$SI2 <- as.factor(Condition1$SI2)
+Condition1$SI3 <- as.factor(Condition1$SI3)
+Condition1$AgeDif1 <- as.factor(Condition1$AgeDif1)
+Condition1$AgeDif2 <- as.factor(Condition1$AgeDif2)
+Condition1$AgeDif3 <- as.factor(Condition1$AgeDif3)
+Condition1$Answer <- as.factor(Condition1$Answer)
+
+
+Condition2$Question <- as.factor(Condition2$Question)
+Condition2$ID <- as.factor(Condition2$ID)
+Condition2$SI1 <- as.factor(Condition2$SI1)
+Condition2$SI2 <- as.factor(Condition2$SI2)
+Condition2$SI3 <- as.factor(Condition2$SI3)
+Condition2$AgeDif1 <- as.factor(Condition2$AgeDif1)
+Condition2$AgeDif2 <- as.factor(Condition2$AgeDif2)
+Condition2$AgeDif3 <- as.factor(Condition2$AgeDif3)
+Condition2$Answer <- as.factor(Condition2$Answer)
+
+
+
+```
+
+```{r}
+
+# How many incorrect answers - 22
+count(Condition1$Correct)
+
+# How many of the incorrect answers have congruency above 1 (same answer as a profile) - 13
+colnames(Condition1)
+sum(Condition1[,14]==0 & Condition1[,24]>=1)
+
+# How many times did participants choose the same answer as a profile (congruency) - 77
+sum(Condition1[,24]>=1)
+```
+
+```{r}
+
+
+x1 <- subset(Condition1, select = c( "Question", "Answer", "ID", "SI1", "SI2", "SI3"))
+x2 <- subset(Condition1, select = c( "Question", "ID", "Congruency", "AgeDif1", "AgeDif2", "AgeDif3"))
+
+
+
+newx1 <- melt(x1, id = c("ID", "Question", "Answer"), measured = c("SI1", "SI2", "SI3"))
+newx2 <- melt(x2, id = c("ID", "Question", "Congruency"), measured = c("AgeDif1", "AgeDif2", "AgeDif3"))
+
+x <- cbind(newx1, newx2)
+
+colnames(x) <- c("ID", "Question", "Answer", "SIx", "SI", "ID.x", "Question.x", "Congruency", "AgeDifx", "AgeDif" )
+
+x <- subset(x, select = c("ID", "Question", "Answer", "SIx", "SI", "Congruency", "AgeDifx", "AgeDif"))
+
+
+x$CorrectAnswer <- ifelse(x$Question == 1, 1, ifelse(x$Question == 2, 3, ifelse(x$Question == 3, 2, ifelse(x$Question == 4, 4, 3))))
+
+
+x$Diff <- ifelse(x$Question == 1 | x$Question == 2 | x$Question == 3, 2, ifelse(x$Question == 4, 1, 3))
+
+
+
+```
+
+
+```{r}
+
+x$AgeDif <- as.numeric(x$AgeDif)
+class(x$AgeDif)
+
+x$AgeGroup <- ifelse(x$AgeDif <= -10, 1, ifelse(x$AgeDif >= -9 & x$AgeDif <= 0, 2, ifelse(x$AgeDif >= 1 & x$AgeDif <= 10, 3, ifelse(x$AgeDif >= 11 & x$AgeDif <= 20, 4, ifelse(x$AgeDif >= 21 & x$AgeDif <= 30, 5, ifelse(x$AgeDif >= 31 & x$AgeDif <= 40, 6, 0))))) )
+
+x$AgeGroup <- as.factor(x$AgeGroup)
+  
+aggregate(x[, 6], list(x$AgeGroup), mean)
+
+x$meancon <- ifelse(x$AgeGroup == 1, 2.08, ifelse(x$AgeGroup == 2, 2, ifelse(x$AgeGroup == 3, 2.21, ifelse(x$AgeGroup == 4, 0.86, ifelse(x$AgeGroup == 5, 1.41, 0.77)))) )
+
+```
+
+
+
+
+```{r}
+
+
+x$AgeDif <- as.numeric(x$AgeDif)
+
+
+ggplot(x, aes(AgeDif, Congruency))+ geom_smooth() + xlab("Age Difference") + ylab("Congruency")
+
+ggplot(x, aes(AgeDif, meancon))+ geom_smooth() + xlab("Age Difference") + ylab("Mean congruency")
+
+ggplot(x, aes(AgeGroup, Congruency))+ geom_bar(stat= "identity", fill = "brown1") + xlab("Age Group")
+
+ggplot(x, aes(AgeDif, Congruency))+ geom_bar(stat= "identity", fill = "orangered1")+ xlab("Age Difference")
+
+
+
+# First subset the wanted columns from Condition1
+answers1 <- subset(Condition1, select= c("Question", "SI1", "SI2", "SI3", "Answer"))
+
+# Melt into long format
+answers1 <- melt(answers1, id = c("Question"))
+
+class(answers1$variable)
+
+# Create index variable. 0 = not participant, 1 means participant
+answers1$participant <- ifelse(answers1$variable == "Answer", 1, 0)
+
+# Change index variable into factor
+class(answers1$participant)
+answers1$participant <- as.factor(answers1$participant)
+
+# plot
+ggplot(answers1, aes(value, fill = participant))+
+  geom_bar(width = 0.6, position = "dodge2")+
+  facet_wrap(answers1$Question) + xlab("Answers") + ylab("Count")
+
+
+```
+
+
+
+
+```{r}
+
+
+
+
+Model_1 <- lmer(Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question), data = x)
+
+summary(Model_1)
+
+Model_2 <- lmer(Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question), data = x)
+
+summary(Model_2)
+
+# Model comparison 
+# AIC + BIC 
+# R^2
+# F-ratio
+# T-statistic
+
+anova(Model_2)
+
+# R-squared
+MuMIn::r.squaredGLMM(lme4::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question)))
+
+MuMIn::r.squaredGLMM(lme4::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question)))
+
+# The marginal R squared values are those associated with fixed effects, the conditional ones are those of your fixed effects plus the random effects.
+# R2m - how much variation the fixed effects explain.
+# R2c - how much variation the fixed effects AND the random effects explain. 
+
+# P-values 
+summary(lmerTest::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question)))
+
+summary(lmerTest::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question)))
+
+# No significance anywhere
+# "not significant" --> "data is not sufficient make a conclusion"
+# repeat the study with a larger sample size
+# reconsider the experimental design (get less noisy measures, extend the range of predictors)
+# reconsider the research question (your time and money is perhaps better invested in trying to answer a different question)
+```
+
+Model_1 is significant and has lower AIC and BIC values. 
+
+
+```{r}
+
+############# Condition 2 ######################
+
+
+```
+
+```{r}
+
+x_1 <- subset(Condition2, select = c( "Question", "Answer", "ID", "SI1", "SI2", "SI3"))
+x_2 <- subset(Condition2, select = c( "Question", "ID", "Congruency", "AgeDif1", "AgeDif2", "AgeDif3"))
+
+
+
+newx_1 <- melt(x_1, id = c("ID", "Question", "Answer"), measured = c("SI1", "SI2", "SI3"))
+newx_2 <- melt(x_2, id = c("ID", "Question", "Congruency"), measured = c("AgeDif1", "AgeDif2", "AgeDif3"))
+
+X <- cbind(newx_1, newx_2)
+
+colnames(X) <- c("ID", "Question", "Answer", "SIx", "SI", "ID.x", "Question.x", "Congruency", "AgeDifx", "AgeDif" )
+
+X <- subset(X, select = c("ID", "Question", "Answer", "SIx", "SI", "Congruency", "AgeDifx", "AgeDif"))
+
+
+
+
+
+
+X$AgeDif <- as.numeric(X$AgeDif)
+class(X$AgeDif)
+
+range(X$AgeDif)
+X$AgeGroup <- ifelse(X$AgeDif <= -10, 1, ifelse(X$AgeDif >= -9 & X$AgeDif <= 0, 2, ifelse(X$AgeDif >= 1 & X$AgeDif <= 10, 3, ifelse(X$AgeDif >= 11 & X$AgeDif <= 20, 4, ifelse(X$AgeDif >= 21 & X$AgeDif <= 30, 5, ifelse(X$AgeDif >= 31 & X$AgeDif <= 40, 6, 0))))) )
+
+X$AgeGroup <- as.factor(X$AgeGroup)
+  
+aggregate(X[, 6], list(X$AgeGroup), mean)
+
+X$meancon <- ifelse(X$AgeGroup == 1, 1, ifelse(X$AgeGroup == 2, 0.93, ifelse(X$AgeGroup == 3, 0.76, ifelse(X$AgeGroup == 4, 0.94, ifelse(X$AgeGroup == 5, 0.98, 0.88)))) )
+```
+
+```{r}
+
+
+X$AgeDif <- as.numeric(X$AgeDif)
+
+
+ggplot(X, aes(AgeDif, Congruency))+ geom_smooth() + xlab("Age Difference") + ylab("Congruency")
+
+ggplot(X, aes(AgeDif, meancon))+ geom_smooth() + xlab("Age Difference") + ylab("Mean congruency")
+
+ggplot(X, aes(AgeGroup, Congruency))+ geom_bar(stat= "identity", fill = "deepskyblue4") + xlab("Age Group")
+
+ggplot(X, aes(AgeDif, Congruency))+ geom_bar(stat= "identity", fill = "cyan4")+ xlab("Age Difference")
+
+
+
+
+```
+
+
+```{r}
+# First subset the wanted columns from Condition1
+answers2 <- subset(Condition2, select= c("Question", "SI1", "SI2", "SI3", "Answer"))
+
+# Melt into long format
+answers2 <- melt(answers2, id = c("Question"))
+
+class(answers2$variable)
+
+# Create index variable. 0 = not participant, 1 means participant
+answers2$participant <- ifelse(answers2$variable == "Answer", 1, 0)
+
+# Change index variable into factor
+class(answers2$participant)
+answers2$participant <- as.factor(answers2$participant)
+
+# plot
+ggplot(answers2, aes(value, fill = participant))+
+  geom_bar(width = 0.6, position = "dodge2")+
+  facet_wrap(answers2$Question) + xlab("Answers") + ylab("Count")
+
+
+```
+
+```{r}
+
+
+Model1 <- lmer(Congruency ~ AgeDif + (1|ID) + (1|Question), data = X)
+
+
+
+Model2 <- lmer(Congruency ~ AgeDif + SI + (1|ID) + (1|Question), data = X)
+
+summary(Model1)
+summary(Model2)
+
+
+
+
+# Model comparison 
+# AIC + BIC 
+# R^2
+# F-ratio
+# T-statistic
+
+anova(Model1, Model2)
+
+# R-squared
+MuMIn::r.squaredGLMM(lme4::lmer(data=X, Congruency ~ AgeDif + (1|ID) + (1|Question)))
+
+MuMIn::r.squaredGLMM(lme4::lmer(data=X, Congruency ~ AgeDif + SI + (1|ID) + (1|Question)))
+
+# The marginal R squared values are those associated with fixed effects, the conditional ones are those of your fixed effects plus the random effects.
+# R2m - how much variation the fixed effects explain.
+# R2c - how much variation the fixed effects AND the random effects explain. 
+
+# P-values 
+summary(lmerTest::lmer(data=X, Congruency ~ AgeDif + (1|ID) + (1|Question)))
+
+summary(lmerTest::lmer(data=X, Congruency ~ AgeDif + SI + (1|ID) + (1|Question)))
+
+# No significance anywhere, apart from significant intercepts.
+# "not significant" --> "data is not sufficient make a conclusion"
+# repeat the study with a larger sample size
+# reconsider the experimental design (get less noisy measures, extend the range of predictors)
+# reconsider the research question (your time and money is perhaps better invested in trying to answer a different question)
+    
+```
+
+
+
