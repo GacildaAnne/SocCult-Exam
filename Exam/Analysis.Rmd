@@ -63,7 +63,7 @@ count(Data$Language)
 
 
 ```{r}
-
+# Subsetting the data into two and making sure everything is the class it should be
 Condition1 <- subset(df, Question <=5)
 Condition2 <- subset(df, Question >= 6)
 
@@ -209,24 +209,24 @@ summary(Model_2)
 # Model comparison 
 # AIC + BIC 
 # R^2
-# F-ratio
-# T-statistic
 
-anova(Model_2)
+
+anova(Model_1, Model_2)
 
 # R-squared
-MuMIn::r.squaredGLMM(lme4::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question)))
-
 MuMIn::r.squaredGLMM(lme4::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question)))
+
+MuMIn::r.squaredGLMM(lme4::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question)))
 
 # The marginal R squared values are those associated with fixed effects, the conditional ones are those of your fixed effects plus the random effects.
 # R2m - how much variation the fixed effects explain.
 # R2c - how much variation the fixed effects AND the random effects explain. 
 
 # P-values 
+summary(lmerTest::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question)))
+
 summary(lmerTest::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer + (1|ID) + (1|Question)))
 
-summary(lmerTest::lmer(data=x, Congruency ~ AgeDif + SI * CorrectAnswer * Diff + (1|ID) + (1|Question)))
 
 # No significance anywhere
 # "not significant" --> "data is not sufficient make a conclusion"
